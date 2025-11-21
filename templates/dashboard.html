@@ -220,9 +220,8 @@
 
                 <div class="form-group" id="value_type_group" style="display: none;">
                     <label for="value_type">Tipo de Valor *</label>
-                    <select id="value_type" name="value_type" required onchange="calculateInstallment()">
-                        <option value="">Selecione...</option>
-                        <option value="total">Valor Total (será dividido)</option>
+                    <select id="value_type" name="value_type" onchange="calculateInstallment()">
+                        <option value="total" selected>Valor Total (será dividido)</option>
                         <option value="individual">Valor Individual (será multiplicado)</option>
                     </select>
                 </div>
