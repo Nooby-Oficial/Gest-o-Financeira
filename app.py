@@ -205,6 +205,10 @@ def dashboard():
                 # Se for total ou None, valor semanal é installment_value / 4
                 total_weekly_expenses += float(expense['installment_value']) / 4
         
+        # Calculate paid expenses percentage
+        total_paid_expenses = sum(float(expense['total_amount']) for expense in expenses if expense['status'] == 'paid')
+        percentage_paid = (total_paid_expenses / total_expenses * 100) if total_expenses > 0 else 0
+        
         balance = total_income - total_expenses
         percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
         
@@ -214,7 +218,8 @@ def dashboard():
             'total_monthly_expenses': total_monthly_expenses,
             'total_weekly_expenses': total_weekly_expenses,
             'balance': balance,
-            'percentage_used': round(percentage_used, 1)
+            'percentage_used': round(percentage_used, 1),
+            'percentage_paid': round(percentage_paid, 1)
         }
         
         return render_template('dashboard.html', 
