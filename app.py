@@ -183,7 +183,8 @@ def dashboard():
         return render_template('dashboard.html', 
                              incomes=incomes, 
                              expenses=expenses, 
-                             summary=summary)
+                             summary=summary,
+                             now=datetime.now())
     except Exception as e:
         print(f"Erro no dashboard: {e}")
         flash(f'Erro ao carregar dashboard: {str(e)}', 'error')
