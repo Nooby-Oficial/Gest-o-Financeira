@@ -76,7 +76,13 @@
                 {% for expense in expenses %}
                 <tr>
                     <td>{{ expense.description }}</td>
-                    <td>{{ expense.category or '-' }}</td>
+                    <td>
+                        {% if expense.installments > 1 %}
+                            Parcelado
+                        {% else %}
+                            Sem Parcelas
+                        {% endif %}
+                    </td>
                     <td><strong>R$ {{ "%.2f"|format(expense.total_amount) }}</strong></td>
                     <td>{{ expense.installments }}x</td>
                     <td>R$ {{ "%.2f"|format(expense.installment_value) }}</td>
