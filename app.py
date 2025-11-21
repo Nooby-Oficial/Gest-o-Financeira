@@ -215,9 +215,14 @@ def add_expense():
     description = request.form['description']
     amount_input = float(request.form['total_amount'])
     installments = int(request.form['installments'])
-    value_type = request.form.get('value_type', 'total')
+    value_type = request.form.get('value_type', 'total') if installments > 1 else 'total'
     category = request.form.get('category', '')
     due_date = request.form['due_date']
+    
+    # Validate value_type is selected when installments > 1
+    if installments > 1 and not value_type:
+        flash('Selecione o tipo de valor (Total ou Individual)', 'error')
+        return redirect(url_for('dashboard'))
     
     # Calculate total and installment values based on type
     if installments > 1 and value_type == 'individual':
