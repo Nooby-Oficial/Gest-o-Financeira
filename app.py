@@ -406,7 +406,7 @@ def add_expense():
                  (user_id, description, total_amount, installments, installment_value, category, 
                   value_type, due_date, status, month, year, current_installment) 
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id''',
-              (user_id, description, installment_value, 1, installment_value, category, 
+              (user_id, description, installment_value, installments, installment_value, category, 
                value_type, due_date_str, 'pending', expense_month, expense_year, 1))
     
     parent_id = c.fetchone()['id']
@@ -434,7 +434,7 @@ def add_expense():
                          (user_id, description, total_amount, installments, installment_value, category, 
                           value_type, due_date, status, month, year, current_installment, parent_expense_id) 
                          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                      (user_id, description, installment_value, 1, installment_value, category, 
+                      (user_id, description, installment_value, installments, installment_value, category, 
                        value_type, next_due_date_str, 'pending', next_month_str, next_year, i, parent_id))
     
     conn.commit()
