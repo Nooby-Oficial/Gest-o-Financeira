@@ -184,12 +184,24 @@ def dashboard():
         # Calculate summary
         total_income = sum(float(income['amount']) for income in incomes)
         total_expenses = sum(float(expense['total_amount']) for expense in expenses)
+        
+        # Calculate weekly expenses
+        total_weekly_expenses = 0
+        for expense in expenses:
+            if expense.get('value_type') == 'individual':
+                # Se for individual, valor semanal é o installment_value
+                total_weekly_expenses += float(expense['installment_value'])
+            else:
+                # Se for total ou None, valor semanal é installment_value / 4
+                total_weekly_expenses += float(expense['installment_value']) / 4
+        
         balance = total_income - total_expenses
         percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
         
         summary = {
             'total_income': total_income,
             'total_expenses': total_expenses,
+            'total_weekly_expenses': total_weekly_expenses,
             'balance': balance,
             'percentage_used': round(percentage_used, 1)
         }
