@@ -78,10 +78,12 @@
                     <td>{{ expense.description }}</td>
                     <td>
                         {% if expense.installments > 1 %}
-                            {% if expense.value_type == 'individual' %}
+                            {% if expense.get('value_type') == 'individual' %}
                                 Parcelado por Semana
-                            {% else %}
+                            {% elif expense.get('value_type') == 'total' %}
                                 Parcelado por Mês
+                            {% else %}
+                                Parcelado
                             {% endif %}
                         {% else %}
                             Sem Parcelas
