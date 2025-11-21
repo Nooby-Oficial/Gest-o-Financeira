@@ -254,13 +254,19 @@ def dashboard():
                  (user_id, selected_month, year))
         expenses = c.fetchall()
         
+        # Get ALL expenses for global calculations (not filtered by month)
+        c.execute('SELECT * FROM expenses WHERE user_id = %s', (user_id,))
+        all_expenses = c.fetchall()
+        
         conn.close()
         
         # Calculate summary
         total_income = sum(float(income['amount']) for income in incomes)
-        total_expenses = sum(float(expense['total_amount']) for expense in expenses)
         
-        # Calculate monthly expenses (sum of Valor/Mês column)
+        # Total de Despesas - usa TODAS as despesas (global)
+        total_expenses_global = sum(float(expense['total_amount']) for expense in all_expenses)
+        
+        # Calculate monthly expenses (sum of Valor/Mês column) - usa despesas do mês
         total_monthly_expenses = 0
         for expense in expenses:
             if expense.get('value_type') == 'individual':
@@ -270,7 +276,7 @@ def dashboard():
                 # Se for total ou None, valor mensal é o installment_value
                 total_monthly_expenses += float(expense['installment_value'])
         
-        # Calculate weekly expenses
+        # Calculate weekly expenses - usa despesas do mês
         total_weekly_expenses = 0
         for expense in expenses:
             if expense.get('value_type') == 'individual':
@@ -280,21 +286,22 @@ def dashboard():
                 # Se for total ou None, valor semanal é installment_value / 4
                 total_weekly_expenses += float(expense['installment_value']) / 4
         
-        # Calculate paid expenses percentage
-        total_paid_expenses = sum(float(expense['total_amount']) for expense in expenses if expense['status'] == 'paid')
-        percentage_paid = (total_paid_expenses / total_expenses * 100) if total_expenses > 0 else 0
+        # Calculate paid expenses percentage - usa TODAS as despesas (global)
+        total_paid_expenses = sum(float(expense['total_amount']) for expense in all_expenses if expense['status'] == 'paid')
+        percentage_paid = (total_paid_expenses / total_expenses_global * 100) if total_expenses_global > 0 else 0
         
-        balance = total_income - total_expenses
-        percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
+        # Balance - usa despesas do mês
+        balance = total_income - total_monthly_expenses
+        percentage_used = (total_monthly_expenses / total_income * 100) if total_income > 0 else 0
         
         summary = {
             'total_income': total_income,
-            'total_expenses': total_expenses,
+            'total_expenses': total_expenses_global,  # Global
             'total_monthly_expenses': total_monthly_expenses,
             'total_weekly_expenses': total_weekly_expenses,
             'balance': balance,
             'percentage_used': round(percentage_used, 1),
-            'percentage_paid': round(percentage_paid, 1)
+            'percentage_paid': round(percentage_paid, 1)  # Global
         }
         
         return render_template('dashboard.html', 
