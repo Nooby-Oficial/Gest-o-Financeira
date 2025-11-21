@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Gestão Financeira{% endblock %}
+
+{% block content %}
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 400px; width: 90%;">
+        <h1 style="text-align: center; color: #667eea; margin-bottom: 10px;">Gestão Financeira</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">Entre com sua conta</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="seu@email.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Entrar</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 20px; color: #666;">
+            Não tem uma conta? 
+            <a href="{{ url_for('register') }}" style="color: #667eea; text-decoration: none; font-weight: 600;">Criar conta</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

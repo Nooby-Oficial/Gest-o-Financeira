@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Gestão Financeira{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>💰 Gestão Financeira</h1>
+        <div>
+            <span style="margin-right: 20px; color: #666;">Olá, {{ session.user_name }}!</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-small btn-danger">Sair</a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <h3>Receita</h3>
+            <div class="value value-positive">R$ {{ "%.2f"|format(summary.total_income) }}</div>
+        </div>
+
+        <div class="summary-card">
+            <h3>Despesas</h3>
+            <div class="value value-negative">R$ {{ "%.2f"|format(summary.total_expenses) }}</div>
+        </div>
+
+        <div class="summary-card">
+            <h3>Saldo</h3>
+            <div class="value {% if summary.balance >= 0 %}value-positive{% else %}value-negative{% endif %}">
+                R$ {{ "%.2f"|format(summary.balance) }}
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <h3>% Utilizado</h3>
+            <div class="value value-primary">{{ summary.percentage_used }}%</div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="margin-bottom: 20px;">
+        <button onclick="openModal('incomeModal')" class="btn btn-success">+ Definir Receita</button>
+        <button onclick="openModal('expenseModal')" class="btn">+ Nova Despesa</button>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="card">
+        <h2 style="margin-bottom: 20px; color: #667eea;">Despesas</h2>
+        
+        {% if expenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor Total</th>
+                    <th>Parcelas</th>
+                    <th>Valor/Parcela</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense[2] }}</td>
+                    <td>{{ expense[6] or '-' }}</td>
+                    <td><strong>R$ {{ "%.2f"|format(expense[3]) }}</strong></td>
+                    <td>{{ expense[4] }}x</td>
+                    <td>R$ {{ "%.2f"|format(expense[5]) }}</td>
+                    <td>{{ expense[7] }}</td>
+                    <td>
+                        <a href="{{ url_for('toggle_status', expense_id=expense[0]) }}">
+                            <span class="status-badge status-{{ expense[8] }}">
+                                {{ 'Pago' if expense[8] == 'paid' else 'Pendente' }}
+                            </span>
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('delete_expense', expense_id=expense[0]) }}" 
+                           class="btn btn-small btn-danger"
+                           onclick="return confirm('Tem certeza que deseja excluir?')">
+                            Excluir
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center; color: #999; padding: 40px 0;">
+            Nenhuma despesa cadastrada.<br>
+            <small>Clique em "+ Nova Despesa" para começar</small>
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Income Modal -->
+    <div id="incomeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Definir Receita</h2>
+                <span class="close-modal" onclick="closeModal('incomeModal')">&times;</span>
+            </div>
+            
+            <form method="POST" action="{{ url_for('add_income') }}">
+                <div class="form-group">
+                    <label for="income_description">Descrição *</label>
+                    <input type="text" id="income_description" name="description" required placeholder="Ex: Salário, Freelance">
+                </div>
+
+                <div class="form-group">
+                    <label for="income_amount">Valor *</label>
+                    <input type="number" id="income_amount" name="amount" step="0.01" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="income_month">Mês/Ano *</label>
+                    <input type="month" id="income_month" name="month" required value="{{ now.strftime('%Y-%m') }}">
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-danger" style="flex: 1;" onclick="closeModal('incomeModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Despesa</h2>
+                <span class="close-modal" onclick="closeModal('expenseModal')">&times;</span>
+            </div>
+            
+            <form method="POST" action="{{ url_for('add_expense') }}">
+                <div class="form-group">
+                    <label for="expense_description">Descrição *</label>
+                    <input type="text" id="expense_description" name="description" required placeholder="Ex: Conta de luz">
+                </div>
+
+                <div class="form-group">
+                    <label for="total_amount">Valor Total *</label>
+                    <input type="number" id="total_amount" name="total_amount" step="0.01" required placeholder="0.00" oninput="calculateInstallment()">
+                </div>
+
+                <div class="form-group">
+                    <label for="installments">Parcelas *</label>
+                    <input type="number" id="installments" name="installments" min="1" required value="1" oninput="calculateInstallment()">
+                </div>
+
+                <div id="installment_info" style="background: #e0e7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none;">
+                    <small style="color: #4338ca;">
+                        <strong>Valor da parcela:</strong> <span id="installment_value">R$ 0,00</span>
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="due_date">Data de Vencimento *</label>
+                    <input type="date" id="due_date" name="due_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Categoria (opcional)</label>
+                    <input type="text" id="category" name="category" placeholder="Ex: Moradia, Alimentação">
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-danger" style="flex: 1;" onclick="closeModal('expenseModal')">Cancelar</button>
+                    <button type="submit" class="btn" style="flex: 1;">Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculateInstallment() {
+        const total = parseFloat(document.getElementById('total_amount').value) || 0;
+        const installments = parseInt(document.getElementById('installments').value) || 1;
+        const installmentValue = total / installments;
+        
+        if (total > 0) {
+            document.getElementById('installment_info').style.display = 'block';
+            document.getElementById('installment_value').textContent = 
+                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue);
+        } else {
+            document.getElementById('installment_info').style.display = 'none';
+        }
+    }
+
+    // Set default date to today
+    document.getElementById('due_date').valueAsDate = new Date();
+</script>
+{% endblock %}

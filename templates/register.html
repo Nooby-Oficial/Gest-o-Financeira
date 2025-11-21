@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Criar Conta - Gestão Financeira{% endblock %}
+
+{% block content %}
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;">
+    <div class="card" style="max-width: 400px; width: 90%;">
+        <h1 style="text-align: center; color: #667eea; margin-bottom: 10px;">Criar Conta</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">Comece a gerenciar suas finanças</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="name">Nome</label>
+                <input type="text" id="name" name="name" required placeholder="Seu nome">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="seu@email.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirmar Senha</label>
+                <input type="password" id="confirm_password" name="confirm_password" required placeholder="Repita a senha" minlength="6">
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 10px;" onclick="return validatePassword()">Criar conta</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 20px; color: #666;">
+            Já tem uma conta? 
+            <a href="{{ url_for('login') }}" style="color: #667eea; text-decoration: none; font-weight: 600;">Fazer login</a>
+        </p>
+    </div>
+</div>
+
+<script>
+    function validatePassword() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        if (password !== confirmPassword) {
+            alert('As senhas não coincidem!');
+            return false;
+        }
+        
+        if (password.length < 6) {
+            alert('A senha deve ter no mínimo 6 caracteres!');
+            return false;
+        }
+        
+        return true;
+    }
+</script>
+{% endblock %}
