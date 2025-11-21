@@ -153,7 +153,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="total_amount">Valor Total *</label>
+                    <label for="total_amount">Valor *</label>
                     <input type="number" id="total_amount" name="total_amount" step="0.01" required placeholder="0.00" oninput="calculateInstallment()">
                 </div>
 
@@ -162,10 +162,23 @@
                     <input type="number" id="installments" name="installments" min="1" required value="1" oninput="calculateInstallment()">
                 </div>
 
-                <div id="installment_info" style="background: #e0e7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none;">
-                    <small style="color: #4338ca;">
-                        <strong>Valor da parcela:</strong> <span id="installment_value">R$ 0,00</span>
-                    </small>
+                <div class="form-group" id="value_type_group" style="display: none;">
+                    <label for="value_type">Tipo de Valor *</label>
+                    <select id="value_type" name="value_type" onchange="calculateInstallment()">
+                        <option value="total">Valor Total (será dividido)</option>
+                        <option value="individual">Valor Individual (será multiplicado)</option>
+                    </select>
+                </div>
+
+                <div id="installment_info" style="background: #e0e7ff; padding: 15px; border-radius: 5px; margin-bottom: 15px; display: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #4338ca;"><strong>Valor Total:</strong></span>
+                        <span id="total_value_display" style="color: #4338ca; font-weight: bold;">R$ 0,00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #4338ca;"><strong>Valor por Parcela:</strong></span>
+                        <span id="installment_value" style="color: #4338ca; font-weight: bold;">R$ 0,00</span>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -189,16 +202,45 @@
 
 <script>
     function calculateInstallment() {
-        const total = parseFloat(document.getElementById('total_amount').value) || 0;
+        const amountInput = parseFloat(document.getElementById('total_amount').value) || 0;
         const installments = parseInt(document.getElementById('installments').value) || 1;
-        const installmentValue = total / installments;
+        const valueType = document.getElementById('value_type').value;
+        const valueTypeGroup = document.getElementById('value_type_group');
+        const installmentInfo = document.getElementById('installment_info');
         
-        if (total > 0) {
-            document.getElementById('installment_info').style.display = 'block';
+        // Show value type selector only if installments > 1
+        if (installments > 1) {
+            valueTypeGroup.style.display = 'block';
+        } else {
+            valueTypeGroup.style.display = 'none';
+        }
+        
+        if (amountInput > 0) {
+            let totalValue, installmentValue;
+            
+            if (installments > 1) {
+                if (valueType === 'total') {
+                    // Valor é total, divide pelas parcelas
+                    totalValue = amountInput;
+                    installmentValue = amountInput / installments;
+                } else {
+                    // Valor é individual, multiplica pelas parcelas
+                    installmentValue = amountInput;
+                    totalValue = amountInput * installments;
+                }
+            } else {
+                // Se for 1 parcela, valor total = valor individual
+                totalValue = amountInput;
+                installmentValue = amountInput;
+            }
+            
+            installmentInfo.style.display = 'block';
+            document.getElementById('total_value_display').textContent = 
+                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue);
             document.getElementById('installment_value').textContent = 
                 new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue);
         } else {
-            document.getElementById('installment_info').style.display = 'none';
+            installmentInfo.style.display = 'none';
         }
     }
 

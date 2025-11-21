@@ -213,11 +213,21 @@ def add_income():
 def add_expense():
     user_id = session['user_id']
     description = request.form['description']
-    total_amount = float(request.form['total_amount'])
+    amount_input = float(request.form['total_amount'])
     installments = int(request.form['installments'])
-    installment_value = total_amount / installments
+    value_type = request.form.get('value_type', 'total')
     category = request.form.get('category', '')
     due_date = request.form['due_date']
+    
+    # Calculate total and installment values based on type
+    if installments > 1 and value_type == 'individual':
+        # User entered individual value, multiply by installments
+        installment_value = amount_input
+        total_amount = amount_input * installments
+    else:
+        # User entered total value (or single installment), divide by installments
+        total_amount = amount_input
+        installment_value = amount_input / installments
     
     conn = get_db_connection()
     c = conn.cursor()
