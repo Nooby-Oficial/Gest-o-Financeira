@@ -370,6 +370,11 @@ def add_expense():
         flash('Selecione o tipo de valor (Total ou Individual)', 'error')
         return redirect(url_for('dashboard'))
     
+    # Validate: Parcelado por Semana (individual) máximo 4 parcelas
+    if installments > 1 and value_type == 'individual' and installments > 4:
+        flash('Parcelado por Semana aceita no máximo 4 parcelas', 'error')
+        return redirect(url_for('dashboard'))
+    
     # Calculate total and installment values based on type
     if installments > 1 and value_type == 'individual':
         # User entered individual value, multiply by installments
@@ -397,8 +402,9 @@ def add_expense():
     
     parent_id = c.fetchone()['id']
     
-    # If there are multiple installments, create future expenses
-    if installments > 1:
+    # If there are multiple installments AND value_type is 'total' (Parcelado por Mês), create future expenses
+    # Parcelado por Semana (value_type='individual') não replica nos próximos meses
+    if installments > 1 and value_type == 'total':
         # Parse due date for calculating future installments
         due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
         

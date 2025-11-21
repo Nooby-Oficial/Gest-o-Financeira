@@ -459,6 +459,12 @@
             return false;
         }
         
+        // Valida: Parcelado por Semana (individual) máximo 4 parcelas
+        if (valueType === 'individual' && installments > 4) {
+            alert('Parcelado por Semana aceita no máximo 4 parcelas');
+            return false;
+        }
+        
         return true;
     }
     
