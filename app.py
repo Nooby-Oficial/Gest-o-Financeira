@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import hashlib
 import os
 from datetime import datetime
@@ -8,18 +9,22 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-# Database path - use /tmp in serverless
-DB_PATH = '/tmp/financeiro.db' if os.path.exists('/tmp') else 'financeiro.db'
+# Database connection
+def get_db_connection():
+    database_url = os.environ.get('DATABASE_URL', 
+        'postgresql://postgres:[YOUR_PASSWORD]@db.pseyjjtoufvhboqnsnsw.supabase.co:5432/postgres')
+    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+    return conn
 
 # Database initialization
 def init_db():
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         
         # Users table
         c.execute('''CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
@@ -28,7 +33,7 @@ def init_db():
         
         # Incomes table
         c.execute('''CREATE TABLE IF NOT EXISTS incomes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             description TEXT NOT NULL,
             amount REAL NOT NULL,
@@ -39,7 +44,7 @@ def init_db():
         
         # Expenses table
         c.execute('''CREATE TABLE IF NOT EXISTS expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             description TEXT NOT NULL,
             total_amount REAL NOT NULL,
@@ -54,6 +59,7 @@ def init_db():
         
         conn.commit()
         conn.close()
+        print("Banco de dados inicializado com sucesso!")
     except Exception as e:
         print(f"Erro ao inicializar banco: {e}")
 
@@ -83,15 +89,15 @@ def login():
         email = request.form['email']
         password = hash_password(request.form['password'])
         
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
-        c.execute('SELECT id, name FROM users WHERE email = ? AND password = ?', (email, password))
+        c.execute('SELECT id, name FROM users WHERE email = %s AND password = %s', (email, password))
         user = c.fetchone()
         conn.close()
         
         if user:
-            session['user_id'] = user[0]
-            session['user_name'] = user[1]
+            session['user_id'] = user['id']
+            session['user_name'] = user['name']
             return redirect(url_for('dashboard'))
         else:
             flash('Email ou senha inválidos', 'error')
@@ -106,21 +112,21 @@ def register():
         password = hash_password(request.form['password'])
         
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = get_db_connection()
             c = conn.cursor()
-            c.execute('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', (name, email, password))
+            c.execute('INSERT INTO users (name, email, password) VALUES (%s, %s, %s) RETURNING id', 
+                     (name, email, password))
+            user_id = c.fetchone()['id']
             conn.commit()
-            
-            # Get user id
-            c.execute('SELECT id FROM users WHERE email = ?', (email,))
-            user = c.fetchone()
             conn.close()
             
-            session['user_id'] = user[0]
+            session['user_id'] = user_id
             session['user_name'] = name
             return redirect(url_for('dashboard'))
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             flash('Email já cadastrado', 'error')
+        except Exception as e:
+            flash(f'Erro ao criar conta: {str(e)}', 'error')
     
     return render_template('register.html')
 
@@ -134,22 +140,22 @@ def logout():
 def dashboard():
     user_id = session['user_id']
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     
     # Get incomes
-    c.execute('SELECT * FROM incomes WHERE user_id = ? ORDER BY month DESC', (user_id,))
+    c.execute('SELECT * FROM incomes WHERE user_id = %s ORDER BY month DESC', (user_id,))
     incomes = c.fetchall()
     
     # Get expenses
-    c.execute('SELECT * FROM expenses WHERE user_id = ? ORDER BY due_date DESC', (user_id,))
+    c.execute('SELECT * FROM expenses WHERE user_id = %s ORDER BY due_date DESC', (user_id,))
     expenses = c.fetchall()
     
     conn.close()
     
     # Calculate summary
-    total_income = sum(income[3] for income in incomes)
-    total_expenses = sum(expense[5] for expense in expenses)
+    total_income = sum(float(income['amount']) for income in incomes)
+    total_expenses = sum(float(expense['installment_value']) for expense in expenses)
     balance = total_income - total_expenses
     percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
     
@@ -173,9 +179,9 @@ def add_income():
     amount = float(request.form['amount'])
     month = request.form['month']
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute('INSERT INTO incomes (user_id, description, amount, month) VALUES (?, ?, ?, ?)',
+    c.execute('INSERT INTO incomes (user_id, description, amount, month) VALUES (%s, %s, %s, %s)',
               (user_id, description, amount, month))
     conn.commit()
     conn.close()
@@ -194,11 +200,11 @@ def add_expense():
     category = request.form.get('category', '')
     due_date = request.form['due_date']
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('''INSERT INTO expenses 
                  (user_id, description, total_amount, installments, installment_value, category, due_date, status) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
               (user_id, description, total_amount, installments, installment_value, category, due_date, 'pending'))
     conn.commit()
     conn.close()
@@ -211,9 +217,9 @@ def add_expense():
 def delete_expense(expense_id):
     user_id = session['user_id']
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute('DELETE FROM expenses WHERE id = ? AND user_id = ?', (expense_id, user_id))
+    c.execute('DELETE FROM expenses WHERE id = %s AND user_id = %s', (expense_id, user_id))
     conn.commit()
     conn.close()
     
@@ -225,14 +231,14 @@ def delete_expense(expense_id):
 def toggle_status(expense_id):
     user_id = session['user_id']
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute('SELECT status FROM expenses WHERE id = ? AND user_id = ?', (expense_id, user_id))
+    c.execute('SELECT status FROM expenses WHERE id = %s AND user_id = %s', (expense_id, user_id))
     expense = c.fetchone()
     
     if expense:
-        new_status = 'paid' if expense[0] == 'pending' else 'pending'
-        c.execute('UPDATE expenses SET status = ? WHERE id = ?', (new_status, expense_id))
+        new_status = 'paid' if expense['status'] == 'pending' else 'pending'
+        c.execute('UPDATE expenses SET status = %s WHERE id = %s', (new_status, expense_id))
         conn.commit()
     
     conn.close()

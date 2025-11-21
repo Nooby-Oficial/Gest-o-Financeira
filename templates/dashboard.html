@@ -74,21 +74,21 @@
             <tbody>
                 {% for expense in expenses %}
                 <tr>
-                    <td>{{ expense[2] }}</td>
-                    <td>{{ expense[6] or '-' }}</td>
-                    <td><strong>R$ {{ "%.2f"|format(expense[3]) }}</strong></td>
-                    <td>{{ expense[4] }}x</td>
-                    <td>R$ {{ "%.2f"|format(expense[5]) }}</td>
-                    <td>{{ expense[7] }}</td>
+                    <td>{{ expense.description }}</td>
+                    <td>{{ expense.category or '-' }}</td>
+                    <td><strong>R$ {{ "%.2f"|format(expense.total_amount) }}</strong></td>
+                    <td>{{ expense.installments }}x</td>
+                    <td>R$ {{ "%.2f"|format(expense.installment_value) }}</td>
+                    <td>{{ expense.due_date }}</td>
                     <td>
-                        <a href="{{ url_for('toggle_status', expense_id=expense[0]) }}">
-                            <span class="status-badge status-{{ expense[8] }}">
-                                {{ 'Pago' if expense[8] == 'paid' else 'Pendente' }}
+                        <a href="{{ url_for('toggle_status', expense_id=expense.id) }}">
+                            <span class="status-badge status-{{ expense.status }}">
+                                {{ 'Pago' if expense.status == 'paid' else 'Pendente' }}
                             </span>
                         </a>
                     </td>
                     <td>
-                        <a href="{{ url_for('delete_expense', expense_id=expense[0]) }}" 
+                        <a href="{{ url_for('delete_expense', expense_id=expense.id) }}" 
                            class="btn btn-small btn-danger"
                            onclick="return confirm('Tem certeza que deseja excluir?')">
                             Excluir
