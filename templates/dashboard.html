@@ -124,7 +124,8 @@
                     </td>
                     <td>{{ expense.due_date }}</td>
                     <td>
-                        <a href="{{ url_for('toggle_status', expense_id=expense.id) }}">
+                        <a href="{{ url_for('toggle_status', expense_id=expense.id) }}" 
+                           onclick="return confirm('Tem certeza que deseja alterar o status para {{ 'Pendente' if expense.status == 'paid' else 'Pago' }}?')">
                             <span class="status-badge status-{{ expense.status }}">
                                 {{ 'Pago' if expense.status == 'paid' else 'Pendente' }}
                             </span>
