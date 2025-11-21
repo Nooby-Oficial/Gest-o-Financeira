@@ -12,7 +12,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-producti
 # Database connection
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL', 
-        'postgresql://postgres:[YOUR_PASSWORD]@db.pseyjjtoufvhboqnsnsw.supabase.co:5432/postgres')
+        'postgresql://postgres:4*a26y%23W.z.Nx+9@db.pseyjjtoufvhboqnsnsw.supabase.co:5432/postgres')
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     return conn
 
