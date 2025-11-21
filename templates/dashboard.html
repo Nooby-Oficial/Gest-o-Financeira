@@ -25,12 +25,12 @@
     <!-- Summary Cards -->
     <div class="summary-grid">
         <div class="summary-card">
-            <h3>Receita</h3>
+            <h3>Receita Mensal</h3>
             <div class="value value-positive">R$ {{ "%.2f"|format(summary.total_income) }}</div>
         </div>
 
         <div class="summary-card">
-            <h3>Despesas</h3>
+            <h3>Despesa Mensal</h3>
             <div class="value {% if summary.total_monthly_expenses <= summary.total_income %}value-warning{% else %}value-negative{% endif %}">
                 R$ {{ "%.2f"|format(summary.total_monthly_expenses) }}
             </div>
@@ -47,7 +47,7 @@
         </div>
 
         <div class="summary-card">
-            <h3>Saldo</h3>
+            <h3>Saldo Mensal</h3>
             <div class="value {% if summary.balance >= 0 %}value-positive{% else %}value-negative{% endif %}">
                 R$ {{ "%.2f"|format(summary.balance) }}
             </div>
