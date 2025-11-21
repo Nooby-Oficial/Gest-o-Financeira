@@ -78,7 +78,11 @@
                     <td>{{ expense.description }}</td>
                     <td>
                         {% if expense.installments > 1 %}
-                            Parcelado
+                            {% if expense.value_type == 'individual' %}
+                                Parcelado por Semana
+                            {% else %}
+                                Parcelado por Mês
+                            {% endif %}
                         {% else %}
                             Sem Parcelas
                         {% endif %}
