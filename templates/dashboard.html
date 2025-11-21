@@ -98,7 +98,13 @@
                             R$ {{ "%.2f"|format(expense.installment_value) }}
                         {% endif %}
                     </td>
-                    <td>R$ {{ "%.2f"|format(expense.installment_value / 4) }}</td>
+                    <td>
+                        {% if expense.get('value_type') == 'individual' %}
+                            R$ {{ "%.2f"|format(expense.installment_value) }}
+                        {% else %}
+                            R$ {{ "%.2f"|format(expense.installment_value / 4) }}
+                        {% endif %}
+                    </td>
                     <td>{{ expense.due_date }}</td>
                     <td>
                         <a href="{{ url_for('toggle_status', expense_id=expense.id) }}">
