@@ -22,6 +22,17 @@
         {% endif %}
     {% endwith %}
 
+    <!-- Month Filter -->
+    <div class="card" style="margin-bottom: 20px;">
+        <form method="GET" action="{{ url_for('dashboard') }}" style="display: flex; align-items: center; gap: 15px;">
+            <label for="month_filter" style="font-weight: 500; color: #555;">Filtrar por Mês:</label>
+            <input type="month" id="month_filter" name="month" value="{{ selected_month }}" 
+                   onchange="this.form.submit()" 
+                   style="padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+            <span style="color: #667eea; font-weight: 500;">{{ selected_month }}</span>
+        </form>
+    </div>
+
     <!-- Summary Cards -->
     <div class="summary-grid">
         <div class="summary-card">
@@ -93,7 +104,12 @@
             <tbody>
                 {% for expense in expenses %}
                 <tr>
-                    <td>{{ expense.description }}</td>
+                    <td>
+                        {{ expense.description }}
+                        {% if expense.get('current_installment') and expense.get('current_installment') > 1 %}
+                            <span style="color: #667eea; font-size: 12px;">({{ expense.current_installment }}/{{ expense.installments }})</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if expense.installments > 1 %}
                             {% if expense.get('value_type') == 'individual' %}
@@ -144,6 +160,11 @@
                                 class="btn btn-small" style="margin-right: 5px;">
                             Editar
                         </button>
+                        <a href="{{ url_for('duplicate_expense', expense_id=expense.id) }}" 
+                           class="btn btn-small" style="background: #10b981; margin-right: 5px;"
+                           onclick="return confirm('Duplicar &quot;{{ expense.description }}&quot; para o próximo mês?')">
+                            Duplicar
+                        </a>
                         <a href="{{ url_for('delete_expense', expense_id=expense.id) }}" 
                            class="btn btn-small btn-danger"
                            onclick="return confirm('Tem certeza que deseja excluir?')">

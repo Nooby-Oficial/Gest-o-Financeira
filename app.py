@@ -88,6 +88,58 @@ def init_db():
             END $$;
         ''')
         
+        # Add month column to expenses if it doesn't exist (migration)
+        c.execute('''
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='expenses' AND column_name='month'
+                ) THEN
+                    ALTER TABLE expenses ADD COLUMN month TEXT;
+                END IF;
+            END $$;
+        ''')
+        
+        # Add year column to expenses if it doesn't exist (migration)
+        c.execute('''
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='expenses' AND column_name='year'
+                ) THEN
+                    ALTER TABLE expenses ADD COLUMN year INTEGER;
+                END IF;
+            END $$;
+        ''')
+        
+        # Add current_installment column if it doesn't exist (migration)
+        c.execute('''
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='expenses' AND column_name='current_installment'
+                ) THEN
+                    ALTER TABLE expenses ADD COLUMN current_installment INTEGER DEFAULT 1;
+                END IF;
+            END $$;
+        ''')
+        
+        # Add parent_expense_id for tracking installments (migration)
+        c.execute('''
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='expenses' AND column_name='parent_expense_id'
+                ) THEN
+                    ALTER TABLE expenses ADD COLUMN parent_expense_id INTEGER;
+                END IF;
+            END $$;
+        ''')
+        
         conn.commit()
         conn.close()
         print("Banco de dados inicializado com sucesso!")
@@ -181,15 +233,25 @@ def dashboard():
     try:
         user_id = session['user_id']
         
+        # Get selected month/year from query params or use current
+        selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+        year, month = selected_month.split('-')
+        year = int(year)
+        month = int(month)
+        
         conn = get_db_connection()
         c = conn.cursor()
         
-        # Get incomes
-        c.execute('SELECT * FROM incomes WHERE user_id = %s ORDER BY month DESC', (user_id,))
+        # Get incomes for selected month
+        c.execute('SELECT * FROM incomes WHERE user_id = %s AND month = %s ORDER BY created_at DESC', 
+                 (user_id, selected_month))
         incomes = c.fetchall()
         
-        # Get expenses
-        c.execute('SELECT * FROM expenses WHERE user_id = %s ORDER BY due_date DESC', (user_id,))
+        # Get expenses for selected month
+        c.execute('''SELECT * FROM expenses 
+                     WHERE user_id = %s AND month = %s AND year = %s 
+                     ORDER BY due_date DESC''', 
+                 (user_id, selected_month, year))
         expenses = c.fetchall()
         
         conn.close()
@@ -239,6 +301,7 @@ def dashboard():
                              incomes=incomes, 
                              expenses=expenses, 
                              summary=summary,
+                             selected_month=selected_month,
                              now=datetime.now())
     except Exception as e:
         print(f"Erro no dashboard: {e}")
@@ -272,7 +335,7 @@ def add_expense():
     installments = int(request.form['installments'])
     value_type = request.form.get('value_type', 'total') if installments > 1 else 'total'
     category = request.form.get('category', '')
-    due_date = request.form['due_date']
+    due_date_str = request.form['due_date']
     
     # Validate value_type is selected when installments > 1
     if installments > 1 and not value_type:
@@ -289,16 +352,48 @@ def add_expense():
         total_amount = amount_input
         installment_value = amount_input / installments
     
+    # Parse due date
+    due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+    
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # Create first expense (parent)
+    month_str = due_date.strftime('%Y-%m')
+    year = due_date.year
+    
     c.execute('''INSERT INTO expenses 
-                 (user_id, description, total_amount, installments, installment_value, category, value_type, due_date, status) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-              (user_id, description, total_amount, installments, installment_value, category, value_type, due_date, 'pending'))
+                 (user_id, description, total_amount, installments, installment_value, category, 
+                  value_type, due_date, status, month, year, current_installment) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id''',
+              (user_id, description, installment_value, 1, installment_value, category, 
+               value_type, due_date_str, 'pending', month_str, year, 1))
+    
+    parent_id = c.fetchone()['id']
+    
+    # If there are multiple installments, create future expenses
+    if installments > 1:
+        for i in range(2, installments + 1):
+            # Add months manually
+            next_month = due_date.month + (i - 1)
+            next_year = due_date.year + ((next_month - 1) // 12)
+            next_month = ((next_month - 1) % 12) + 1
+            next_due_date = due_date.replace(year=next_year, month=next_month)
+            next_month_str = next_due_date.strftime('%Y-%m')
+            next_year_int = next_due_date.year
+            next_due_date_str = next_due_date.strftime('%Y-%m-%d')
+            
+            c.execute('''INSERT INTO expenses 
+                         (user_id, description, total_amount, installments, installment_value, category, 
+                          value_type, due_date, status, month, year, current_installment, parent_expense_id) 
+                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                      (user_id, description, installment_value, 1, installment_value, category, 
+                       value_type, next_due_date_str, 'pending', next_month_str, next_year_int, i, parent_id))
+    
     conn.commit()
     conn.close()
     
-    flash('Despesa adicionada com sucesso', 'success')
+    flash(f'Despesa adicionada com sucesso! {installments} parcela(s) criada(s).', 'success')
     return redirect(url_for('dashboard'))
 
 @app.route('/edit_expense/<int:expense_id>', methods=['POST'])
@@ -379,5 +474,44 @@ def toggle_status(expense_id):
     conn.close()
     return redirect(url_for('dashboard'))
 
+@app.route('/duplicate_expense/<int:expense_id>')
+@login_required
+def duplicate_expense(expense_id):
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Get original expense
+    c.execute('SELECT * FROM expenses WHERE id = %s AND user_id = %s', (expense_id, user_id))
+    original = c.fetchone()
+    
+    if original:
+        # Calculate next month
+        original_date = datetime.strptime(original['due_date'], '%Y-%m-%d')
+        next_month = original_date.month + 1
+        next_year = original_date.year + (next_month // 13)
+        next_month = ((next_month - 1) % 12) + 1
+        next_date = original_date.replace(year=next_year, month=next_month)
+        next_month_str = next_date.strftime('%Y-%m')
+        next_due_date_str = next_date.strftime('%Y-%m-%d')
+        
+        # Create duplicate for next month
+        c.execute('''INSERT INTO expenses 
+                     (user_id, description, total_amount, installments, installment_value, category, 
+                      value_type, due_date, status, month, year, current_installment) 
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                  (user_id, original['description'], original['total_amount'], 
+                   original['installments'], original['installment_value'], original['category'],
+                   original.get('value_type', 'total'), next_due_date_str, 'pending', 
+                   next_month_str, next_year, original.get('current_installment', 1)))
+        
+        conn.commit()
+        flash(f'Despesa "{original["description"]}" duplicada para {next_month_str}', 'success')
+    
+    conn.close()
+    return redirect(url_for('dashboard'))
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
