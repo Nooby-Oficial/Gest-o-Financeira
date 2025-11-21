@@ -83,6 +83,12 @@ def hash_password(password):
 # Routes
 @app.route('/')
 def index():
+    # Initialize database on first request
+    try:
+        init_db()
+    except:
+        pass
+    
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
@@ -247,12 +253,6 @@ def toggle_status(expense_id):
     
     conn.close()
     return redirect(url_for('dashboard'))
-
-# Initialize database
-try:
-    init_db()
-except Exception as e:
-    print(f"Aviso: Banco não inicializado: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
