@@ -260,8 +260,15 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="expense_month">Mês da Despesa *</label>
+                    <input type="month" id="expense_month" name="expense_month" required value="{{ now.strftime('%Y-%m') }}">
+                    <small style="color: #666; display: block; margin-top: 5px;">Selecione o mês em que a despesa foi gerada</small>
+                </div>
+
+                <div class="form-group">
                     <label for="due_date">Data de Vencimento *</label>
                     <input type="date" id="due_date" name="due_date" required>
+                    <small style="color: #666; display: block; margin-top: 5px;">Data do pagamento (normalmente no mês seguinte)</small>
                 </div>
 
                 <div class="form-group">

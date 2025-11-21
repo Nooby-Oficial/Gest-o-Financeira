@@ -343,6 +343,7 @@ def add_expense():
     value_type = request.form.get('value_type', 'total') if installments > 1 else 'total'
     category = request.form.get('category', '')
     due_date_str = request.form['due_date']
+    expense_month = request.form['expense_month']  # Novo campo: mês da despesa
     
     # Validate value_type is selected when installments > 1
     if installments > 1 and not value_type:
@@ -359,35 +360,40 @@ def add_expense():
         total_amount = amount_input
         installment_value = amount_input / installments
     
-    # Parse due date
-    due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+    # Parse expense month
+    expense_year, expense_month_num = expense_month.split('-')
+    expense_year = int(expense_year)
     
     conn = get_db_connection()
     c = conn.cursor()
     
-    # Create first expense (parent)
-    month_str = due_date.strftime('%Y-%m')
-    year = due_date.year
-    
+    # Create first expense (parent) - usa o mês da despesa, não do vencimento
     c.execute('''INSERT INTO expenses 
                  (user_id, description, total_amount, installments, installment_value, category, 
                   value_type, due_date, status, month, year, current_installment) 
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id''',
               (user_id, description, installment_value, 1, installment_value, category, 
-               value_type, due_date_str, 'pending', month_str, year, 1))
+               value_type, due_date_str, 'pending', expense_month, expense_year, 1))
     
     parent_id = c.fetchone()['id']
     
     # If there are multiple installments, create future expenses
     if installments > 1:
+        # Parse due date for calculating future installments
+        due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+        
         for i in range(2, installments + 1):
-            # Add months manually
-            next_month = due_date.month + (i - 1)
-            next_year = due_date.year + ((next_month - 1) // 12)
-            next_month = ((next_month - 1) % 12) + 1
-            next_due_date = due_date.replace(year=next_year, month=next_month)
-            next_month_str = next_due_date.strftime('%Y-%m')
-            next_year_int = next_due_date.year
+            # Calculate next month from expense_month
+            next_month_num = int(expense_month_num) + (i - 1)
+            next_year = expense_year + ((next_month_num - 1) // 12)
+            next_month_num = ((next_month_num - 1) % 12) + 1
+            next_month_str = f"{next_year}-{next_month_num:02d}"
+            
+            # Calculate next due date
+            next_due_month = due_date.month + (i - 1)
+            next_due_year = due_date.year + ((next_due_month - 1) // 12)
+            next_due_month = ((next_due_month - 1) % 12) + 1
+            next_due_date = due_date.replace(year=next_due_year, month=next_due_month)
             next_due_date_str = next_due_date.strftime('%Y-%m-%d')
             
             c.execute('''INSERT INTO expenses 
@@ -395,7 +401,7 @@ def add_expense():
                           value_type, due_date, status, month, year, current_installment, parent_expense_id) 
                          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
                       (user_id, description, installment_value, 1, installment_value, category, 
-                       value_type, next_due_date_str, 'pending', next_month_str, next_year_int, i, parent_id))
+                       value_type, next_due_date_str, 'pending', next_month_str, next_year, i, parent_id))
     
     conn.commit()
     conn.close()
