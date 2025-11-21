@@ -75,6 +75,19 @@ def init_db():
             END $$;
         ''')
         
+        # Add paid_date column if it doesn't exist (migration)
+        c.execute('''
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='expenses' AND column_name='paid_date'
+                ) THEN
+                    ALTER TABLE expenses ADD COLUMN paid_date DATE;
+                END IF;
+            END $$;
+        ''')
+        
         conn.commit()
         conn.close()
         print("Banco de dados inicializado com sucesso!")
@@ -351,7 +364,16 @@ def toggle_status(expense_id):
     
     if expense:
         new_status = 'paid' if expense['status'] == 'pending' else 'pending'
-        c.execute('UPDATE expenses SET status = %s WHERE id = %s', (new_status, expense_id))
+        
+        if new_status == 'paid':
+            # Registra a data de pagamento
+            c.execute('UPDATE expenses SET status = %s, paid_date = CURRENT_DATE WHERE id = %s', 
+                     (new_status, expense_id))
+        else:
+            # Remove a data de pagamento ao voltar para pendente
+            c.execute('UPDATE expenses SET status = %s, paid_date = NULL WHERE id = %s', 
+                     (new_status, expense_id))
+        
         conn.commit()
     
     conn.close()

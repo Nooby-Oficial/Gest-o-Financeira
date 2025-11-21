@@ -86,6 +86,7 @@
                     <th>Valor/Semana</th>
                     <th>Vencimento</th>
                     <th>Status</th>
+                    <th>Data Pagamento</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -125,11 +126,18 @@
                     <td>{{ expense.due_date }}</td>
                     <td>
                         <a href="{{ url_for('toggle_status', expense_id=expense.id) }}" 
-                           onclick="return confirm('Tem certeza que deseja alterar o status para {{ 'Pendente' if expense.status == 'paid' else 'Pago' }}?')">
+                           onclick="return confirm('Tem certeza que deseja marcar a despesa &quot;{{ expense.description }}&quot; como {{ 'Pendente' if expense.status == 'paid' else 'Paga' }}?')">
                             <span class="status-badge status-{{ expense.status }}">
                                 {{ 'Pago' if expense.status == 'paid' else 'Pendente' }}
                             </span>
                         </a>
+                    </td>
+                    <td>
+                        {% if expense.paid_date %}
+                            {{ expense.paid_date }}
+                        {% else %}
+                            <span style="color: #999;">-</span>
+                        {% endif %}
                     </td>
                     <td>
                         <button onclick="openEditModal({{ expense.id }}, '{{ expense.description }}', {{ expense.total_amount }}, {{ expense.installments }}, '{{ expense.get('value_type', 'total') }}', '{{ expense.due_date }}', '{{ expense.category }}')" 
