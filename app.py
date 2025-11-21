@@ -420,6 +420,10 @@ def edit_expense(expense_id):
     value_type = request.form.get('value_type', 'total')
     due_date = request.form['due_date']
     category = request.form.get('category', '')
+    expense_month = request.form['expense_month']  # Novo campo
+    
+    # Parse expense month for year
+    expense_year = int(expense_month.split('-')[0])
     
     # Calculate installment value
     if installments > 1:
@@ -436,10 +440,11 @@ def edit_expense(expense_id):
     c = conn.cursor()
     c.execute('''UPDATE expenses 
                  SET description = %s, total_amount = %s, installments = %s, 
-                     installment_value = %s, value_type = %s, due_date = %s, category = %s
+                     installment_value = %s, value_type = %s, due_date = %s, category = %s,
+                     month = %s, year = %s
                  WHERE id = %s AND user_id = %s''',
               (description, total_amount, installments, installment_value, 
-               value_type, due_date, category, expense_id, user_id))
+               value_type, due_date, category, expense_month, expense_year, expense_id, user_id))
     conn.commit()
     conn.close()
     

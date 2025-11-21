@@ -156,7 +156,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <button onclick="openEditModal({{ expense.id }}, '{{ expense.description }}', {{ expense.total_amount }}, {{ expense.installments }}, '{{ expense.get('value_type', 'total') }}', '{{ expense.due_date }}', '{{ expense.category }}')" 
+                        <button onclick="openEditModal({{ expense.id }}, '{{ expense.description }}', {{ expense.total_amount }}, {{ expense.installments }}, '{{ expense.get('value_type', 'total') }}', '{{ expense.due_date }}', '{{ expense.category }}', '{{ expense.month }}')" 
                                 class="btn btn-small" style="margin-right: 5px;">
                             Editar
                         </button>
@@ -329,8 +329,15 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="edit_expense_month">Mês da Despesa *</label>
+                    <input type="month" id="edit_expense_month" name="expense_month" required>
+                    <small style="color: #666; display: block; margin-top: 5px;">Selecione o mês em que a despesa foi gerada</small>
+                </div>
+
+                <div class="form-group">
                     <label for="edit_due_date">Data de Vencimento *</label>
                     <input type="date" id="edit_due_date" name="due_date" required>
+                    <small style="color: #666; display: block; margin-top: 5px;">Data do pagamento (normalmente no mês seguinte)</small>
                 </div>
 
                 <div class="form-group">
@@ -348,13 +355,14 @@
 </div>
 
 <script>
-    function openEditModal(id, description, totalAmount, installments, valueType, dueDate, category) {
+    function openEditModal(id, description, totalAmount, installments, valueType, dueDate, category, expenseMonth) {
         document.getElementById('editExpenseForm').action = '/edit_expense/' + id;
         document.getElementById('edit_expense_description').value = description;
         document.getElementById('edit_installments').value = installments;
         document.getElementById('edit_value_type').value = valueType;
         document.getElementById('edit_due_date').value = dueDate;
         document.getElementById('edit_category').value = category || '';
+        document.getElementById('edit_expense_month').value = expenseMonth || '';
         
         // Calculate the input value based on value_type
         if (installments > 1 && valueType === 'individual') {
