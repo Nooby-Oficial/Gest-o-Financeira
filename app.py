@@ -169,7 +169,7 @@ def dashboard():
         
         # Calculate summary
         total_income = sum(float(income['amount']) for income in incomes)
-        total_expenses = sum(float(expense['installment_value']) for expense in expenses)
+        total_expenses = sum(float(expense['total_amount']) for expense in expenses)
         balance = total_income - total_expenses
         percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
         
