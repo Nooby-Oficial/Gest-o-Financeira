@@ -62,6 +62,19 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )''')
         
+        # Add value_type column if it doesn't exist (migration)
+        c.execute('''
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='expenses' AND column_name='value_type'
+                ) THEN
+                    ALTER TABLE expenses ADD COLUMN value_type TEXT;
+                END IF;
+            END $$;
+        ''')
+        
         conn.commit()
         conn.close()
         print("Banco de dados inicializado com sucesso!")
