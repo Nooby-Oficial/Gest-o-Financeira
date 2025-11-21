@@ -159,12 +159,13 @@
 
                 <div class="form-group">
                     <label for="installments">Parcelas *</label>
-                    <input type="number" id="installments" name="installments" min="1" required value="1" oninput="calculateInstallment()">
+                    <input type="number" id="installments" name="installments" min="1" required value="1" oninput="toggleValueTypeField()">
                 </div>
 
                 <div class="form-group" id="value_type_group" style="display: none;">
                     <label for="value_type">Tipo de Valor *</label>
-                    <select id="value_type" name="value_type" onchange="calculateInstallment()">
+                    <select id="value_type" name="value_type" required onchange="calculateInstallment()">
+                        <option value="">Selecione...</option>
                         <option value="total">Valor Total (será dividido)</option>
                         <option value="individual">Valor Individual (será multiplicado)</option>
                     </select>
@@ -201,44 +202,54 @@
 </div>
 
 <script>
+    function toggleValueTypeField() {
+        const installments = parseInt(document.getElementById('installments').value) || 1;
+        const valueTypeGroup = document.getElementById('value_type_group');
+        const valueTypeSelect = document.getElementById('value_type');
+        
+        if (installments > 1) {
+            valueTypeGroup.style.display = 'block';
+            valueTypeSelect.required = true;
+        } else {
+            valueTypeGroup.style.display = 'none';
+            valueTypeSelect.required = false;
+            valueTypeSelect.value = 'total';
+        }
+        
+        calculateInstallment();
+    }
+    
     function calculateInstallment() {
         const amountInput = parseFloat(document.getElementById('total_amount').value) || 0;
         const installments = parseInt(document.getElementById('installments').value) || 1;
         const valueType = document.getElementById('value_type').value;
-        const valueTypeGroup = document.getElementById('value_type_group');
         const installmentInfo = document.getElementById('installment_info');
         
-        // Show value type selector only if installments > 1
-        if (installments > 1) {
-            valueTypeGroup.style.display = 'block';
-        } else {
-            valueTypeGroup.style.display = 'none';
-        }
-        
-        if (amountInput > 0) {
+        if (amountInput > 0 && (installments === 1 || valueType)) {
             let totalValue, installmentValue;
             
-            if (installments > 1) {
+            if (installments > 1 && valueType) {
                 if (valueType === 'total') {
-                    // Valor é total, divide pelas parcelas
                     totalValue = amountInput;
                     installmentValue = amountInput / installments;
-                } else {
-                    // Valor é individual, multiplica pelas parcelas
+                } else if (valueType === 'individual') {
                     installmentValue = amountInput;
                     totalValue = amountInput * installments;
                 }
             } else {
-                // Se for 1 parcela, valor total = valor individual
                 totalValue = amountInput;
                 installmentValue = amountInput;
             }
             
-            installmentInfo.style.display = 'block';
-            document.getElementById('total_value_display').textContent = 
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue);
-            document.getElementById('installment_value').textContent = 
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue);
+            if (totalValue !== undefined) {
+                installmentInfo.style.display = 'block';
+                document.getElementById('total_value_display').textContent = 
+                    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue);
+                document.getElementById('installment_value').textContent = 
+                    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue);
+            } else {
+                installmentInfo.style.display = 'none';
+            }
         } else {
             installmentInfo.style.display = 'none';
         }
