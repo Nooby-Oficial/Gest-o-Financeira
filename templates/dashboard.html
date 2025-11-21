@@ -66,6 +66,7 @@
                     <th>Valor Total</th>
                     <th>Parcelas</th>
                     <th>Valor/Parcela</th>
+                    <th>Valor/Semana</th>
                     <th>Vencimento</th>
                     <th>Status</th>
                     <th>Ações</th>
@@ -79,6 +80,15 @@
                     <td><strong>R$ {{ "%.2f"|format(expense.total_amount) }}</strong></td>
                     <td>{{ expense.installments }}x</td>
                     <td>R$ {{ "%.2f"|format(expense.installment_value) }}</td>
+                    <td>
+                        {% if expense.value_type == 'individual' %}
+                            <span style="color: #10b981; font-weight: 600;">R$ {{ "%.2f"|format(expense.installment_value) }}</span>
+                            <small style="display: block; color: #6b7280; font-size: 11px;">Semanal</small>
+                        {% else %}
+                            R$ {{ "%.2f"|format(expense.installment_value / 4) }}
+                            <small style="display: block; color: #6b7280; font-size: 11px;">Mensal ÷ 4</small>
+                        {% endif %}
+                    </td>
                     <td>{{ expense.due_date }}</td>
                     <td>
                         <a href="{{ url_for('toggle_status', expense_id=expense.id) }}">
