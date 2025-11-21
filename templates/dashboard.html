@@ -204,7 +204,8 @@
 
                 <div class="form-group">
                     <label for="income_month">Mês/Ano *</label>
-                    <input type="month" id="income_month" name="month" required value="{{ now.strftime('%Y-%m') }}">
+                    <input type="month" id="income_month" name="month" required value="{{ selected_month }}" onchange="loadIncomeForMonth()">
+                    <small style="color: #666; display: block; margin-top: 5px;">Altere o mês para editar receita de outro período</small>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -507,5 +508,39 @@
 
     // Set default date to today
     document.getElementById('due_date').valueAsDate = new Date();
+    
+    // Load income data when month changes in income modal
+    async function loadIncomeForMonth() {
+        const month = document.getElementById('income_month').value;
+        if (!month) return;
+        
+        try {
+            const response = await fetch(`/get_income/${month}`);
+            const data = await response.json();
+            
+            if (data.description) {
+                document.getElementById('income_description').value = data.description;
+                document.getElementById('income_amount').value = data.amount;
+            } else {
+                document.getElementById('income_description').value = '';
+                document.getElementById('income_amount').value = '';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar receita:', error);
+        }
+    }
+    
+    // Load income when opening modal
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+        if (modalId === 'incomeModal') {
+            loadIncomeForMonth();
+        }
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
 </script>
 {% endblock %}
+

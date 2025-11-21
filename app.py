@@ -325,13 +325,46 @@ def add_income():
     
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('INSERT INTO incomes (user_id, description, amount, month) VALUES (%s, %s, %s, %s)',
-              (user_id, description, amount, month))
+    
+    # Verifica se já existe receita para este mês e usuário
+    c.execute('SELECT id FROM incomes WHERE user_id = %s AND month = %s', (user_id, month))
+    existing_income = c.fetchone()
+    
+    if existing_income:
+        # Atualiza a receita existente (substitui o valor antigo)
+        c.execute('UPDATE incomes SET description = %s, amount = %s WHERE id = %s',
+                  (description, amount, existing_income['id']))
+        flash('Receita atualizada com sucesso', 'success')
+    else:
+        # Cria nova receita
+        c.execute('INSERT INTO incomes (user_id, description, amount, month) VALUES (%s, %s, %s, %s)',
+                  (user_id, description, amount, month))
+        flash('Receita adicionada com sucesso', 'success')
+    
     conn.commit()
     conn.close()
     
-    flash('Receita adicionada com sucesso', 'success')
     return redirect(url_for('dashboard'))
+
+@app.route('/get_income/<month>')
+@login_required
+def get_income(month):
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('SELECT description, amount FROM incomes WHERE user_id = %s AND month = %s', 
+              (user_id, month))
+    income = c.fetchone()
+    conn.close()
+    
+    if income:
+        return jsonify({
+            'description': income['description'],
+            'amount': float(income['amount'])
+        })
+    else:
+        return jsonify({'description': '', 'amount': 0})
 
 @app.route('/add_expense', methods=['POST'])
 @login_required
