@@ -126,7 +126,11 @@
                     <td><strong>R$ {{ "%.2f"|format(expense.total_amount) }}</strong></td>
                     <td>{{ expense.installments }}x</td>
                     <td>
-                        R$ {{ "%.2f"|format(expense.installment_value) }}
+                        {% if expense.get('value_type') == 'total' %}
+                            R$ {{ "%.2f"|format(expense.installment_value) }}
+                        {% else %}
+                            R$ {{ "%.2f"|format(expense.total_amount) }}
+                        {% endif %}
                     </td>
                     <td>
                         R$ {{ "%.2f"|format(expense.installment_value / expense.installments) }}
