@@ -270,7 +270,13 @@ def dashboard():
         total_monthly_expenses = sum(float(expense['installment_value']) for expense in expenses)
         
         # Calculate weekly expenses (sum of Valor/Semana column) - usa despesas do mês
-        total_weekly_expenses = sum(float(expense['installment_value']) / expense['installments'] for expense in expenses)
+        # Para cada despesa: se for 'total' usa installment_value/4, senão usa total_amount/4
+        total_weekly_expenses = 0
+        for expense in expenses:
+            if expense.get('value_type') == 'total':
+                total_weekly_expenses += float(expense['installment_value']) / 4
+            else:
+                total_weekly_expenses += float(expense['total_amount']) / 4
         
         # Calculate paid expenses percentage - usa TODAS as despesas (global)
         total_paid_expenses = sum(float(expense['total_amount']) for expense in all_expenses if expense['status'] == 'paid')
