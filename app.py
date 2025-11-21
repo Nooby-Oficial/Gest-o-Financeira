@@ -344,7 +344,8 @@ def add_income():
     conn.commit()
     conn.close()
     
-    return redirect(url_for('dashboard'))
+    # Mantém o filtro do mês selecionado
+    return redirect(url_for('dashboard', month=month))
 
 @app.route('/get_income/<month>')
 @login_required
@@ -440,7 +441,8 @@ def add_expense():
     conn.close()
     
     flash(f'Despesa adicionada com sucesso! {installments} parcela(s) criada(s).', 'success')
-    return redirect(url_for('dashboard'))
+    # Mantém o filtro do mês da despesa
+    return redirect(url_for('dashboard', month=expense_month))
 
 @app.route('/edit_expense/<int:expense_id>', methods=['POST'])
 @login_required
@@ -482,12 +484,14 @@ def edit_expense(expense_id):
     conn.close()
     
     flash('Despesa atualizada com sucesso', 'success')
-    return redirect(url_for('dashboard'))
+    # Mantém o filtro do mês da despesa
+    return redirect(url_for('dashboard', month=expense_month))
 
 @app.route('/delete_expense/<int:expense_id>')
 @login_required
 def delete_expense(expense_id):
     user_id = session['user_id']
+    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -496,12 +500,13 @@ def delete_expense(expense_id):
     conn.close()
     
     flash('Despesa excluída com sucesso', 'success')
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard', month=selected_month))
 
 @app.route('/toggle_status/<int:expense_id>')
 @login_required
 def toggle_status(expense_id):
     user_id = session['user_id']
+    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -523,12 +528,13 @@ def toggle_status(expense_id):
         conn.commit()
     
     conn.close()
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard', month=selected_month))
 
 @app.route('/duplicate_expense/<int:expense_id>')
 @login_required
 def duplicate_expense(expense_id):
     user_id = session['user_id']
+    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -561,7 +567,7 @@ def duplicate_expense(expense_id):
         flash(f'Despesa "{original["description"]}" duplicada para {next_month_str}', 'success')
     
     conn.close()
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard', month=selected_month))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

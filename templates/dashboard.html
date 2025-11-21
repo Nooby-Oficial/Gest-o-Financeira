@@ -141,7 +141,7 @@
                     </td>
                     <td>{{ expense.due_date }}</td>
                     <td>
-                        <a href="{{ url_for('toggle_status', expense_id=expense.id) }}" 
+                        <a href="{{ url_for('toggle_status', expense_id=expense.id, month=selected_month) }}" 
                            onclick="return confirm('Tem certeza que deseja marcar a despesa &quot;{{ expense.description }}&quot; como {{ 'Pendente' if expense.status == 'paid' else 'Paga' }}?')">
                             <span class="status-badge status-{{ expense.status }}">
                                 {{ 'Pago' if expense.status == 'paid' else 'Pendente' }}
@@ -160,12 +160,12 @@
                                 class="btn btn-small" style="margin-right: 5px;">
                             Editar
                         </button>
-                        <a href="{{ url_for('duplicate_expense', expense_id=expense.id) }}" 
+                        <a href="{{ url_for('duplicate_expense', expense_id=expense.id, month=selected_month) }}" 
                            class="btn btn-small" style="background: #10b981; margin-right: 5px;"
                            onclick="return confirm('Duplicar &quot;{{ expense.description }}&quot; para o próximo mês?')">
                             Duplicar
                         </a>
-                        <a href="{{ url_for('delete_expense', expense_id=expense.id) }}" 
+                        <a href="{{ url_for('delete_expense', expense_id=expense.id, month=selected_month) }}" 
                            class="btn btn-small btn-danger"
                            onclick="return confirm('Tem certeza que deseja excluir?')">
                             Excluir
