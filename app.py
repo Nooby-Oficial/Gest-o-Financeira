@@ -487,6 +487,16 @@ def delete_expense(expense_id):
     
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # Verifica se é uma despesa pai (parent_expense_id é NULL)
+    c.execute('SELECT parent_expense_id FROM expenses WHERE id = %s AND user_id = %s', (expense_id, user_id))
+    expense = c.fetchone()
+    
+    if expense and expense['parent_expense_id'] is None:
+        # É uma despesa pai, excluir também todas as parcelas filhas
+        c.execute('DELETE FROM expenses WHERE parent_expense_id = %s AND user_id = %s', (expense_id, user_id))
+    
+    # Exclui a despesa principal
     c.execute('DELETE FROM expenses WHERE id = %s AND user_id = %s', (expense_id, user_id))
     conn.commit()
     conn.close()
