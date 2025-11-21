@@ -38,12 +38,12 @@
 
         <div class="summary-card">
             <h3>Total de Despesas</h3>
-            <div class="value value-primary">R$ {{ "%.2f"|format(summary.total_expenses) }}</div>
+            <div class="value {% if summary.total_expenses <= summary.total_income %}value-positive{% else %}value-yellow{% endif %}">R$ {{ "%.2f"|format(summary.total_expenses) }}</div>
         </div>
 
         <div class="summary-card">
             <h3>Despesa Semanal</h3>
-            <div class="value value-primary">R$ {{ "%.2f"|format(summary.total_weekly_expenses) }}</div>
+            <div class="value {% if summary.total_weekly_expenses > (summary.total_income * 0.25) %}value-warning{% else %}value-primary{% endif %}">R$ {{ "%.2f"|format(summary.total_weekly_expenses) }}</div>
         </div>
 
         <div class="summary-card">
