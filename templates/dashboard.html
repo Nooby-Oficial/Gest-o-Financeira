@@ -30,10 +30,15 @@
         </div>
 
         <div class="summary-card">
-            <h3>Total de Despesas</h3>
-            <div class="value {% if summary.total_expenses <= summary.total_income %}value-warning{% else %}value-negative{% endif %}">
-                R$ {{ "%.2f"|format(summary.total_expenses) }}
+            <h3>Despesas</h3>
+            <div class="value {% if summary.total_monthly_expenses <= summary.total_income %}value-warning{% else %}value-negative{% endif %}">
+                R$ {{ "%.2f"|format(summary.total_monthly_expenses) }}
             </div>
+        </div>
+
+        <div class="summary-card">
+            <h3>Total de Despesas</h3>
+            <div class="value value-primary">R$ {{ "%.2f"|format(summary.total_expenses) }}</div>
         </div>
 
         <div class="summary-card">

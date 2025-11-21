@@ -185,6 +185,16 @@ def dashboard():
         total_income = sum(float(income['amount']) for income in incomes)
         total_expenses = sum(float(expense['total_amount']) for expense in expenses)
         
+        # Calculate monthly expenses (sum of Valor/Mês column)
+        total_monthly_expenses = 0
+        for expense in expenses:
+            if expense.get('value_type') == 'individual':
+                # Se for individual, valor mensal é o total_amount
+                total_monthly_expenses += float(expense['total_amount'])
+            else:
+                # Se for total ou None, valor mensal é o installment_value
+                total_monthly_expenses += float(expense['installment_value'])
+        
         # Calculate weekly expenses
         total_weekly_expenses = 0
         for expense in expenses:
@@ -201,6 +211,7 @@ def dashboard():
         summary = {
             'total_income': total_income,
             'total_expenses': total_expenses,
+            'total_monthly_expenses': total_monthly_expenses,
             'total_weekly_expenses': total_weekly_expenses,
             'balance': balance,
             'percentage_used': round(percentage_used, 1)
