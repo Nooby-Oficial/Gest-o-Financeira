@@ -11,10 +11,14 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-producti
 
 # Database connection
 def get_db_connection():
-    database_url = os.environ.get('DATABASE_URL', 
-        'postgresql://postgres.pseyjjtoufvhboqnsnsw:4*a26y%23W.z.Nx+9@aws-0-sa-east-1.pooler.supabase.com:6543/postgres')
-    conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-    return conn
+    try:
+        database_url = os.environ.get('DATABASE_URL', 
+            'postgresql://postgres.pseyjjtoufvhboqnsnsw:4*a26y%23W.z.Nx+9@aws-0-sa-east-1.pooler.supabase.com:6543/postgres')
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor, connect_timeout=10)
+        return conn
+    except Exception as e:
+        print(f"Erro ao conectar banco: {e}")
+        raise
 
 # Database initialization
 def init_db():
@@ -245,7 +249,10 @@ def toggle_status(expense_id):
     return redirect(url_for('dashboard'))
 
 # Initialize database
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"Aviso: Banco não inicializado: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
