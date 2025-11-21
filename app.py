@@ -6,50 +6,56 @@ from datetime import datetime
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# Database path - use /tmp in serverless
+DB_PATH = '/tmp/financeiro.db' if os.path.exists('/tmp') else 'financeiro.db'
 
 # Database initialization
 def init_db():
-    conn = sqlite3.connect('financeiro.db')
-    c = conn.cursor()
-    
-    # Users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    
-    # Incomes table
-    c.execute('''CREATE TABLE IF NOT EXISTS incomes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        description TEXT NOT NULL,
-        amount REAL NOT NULL,
-        month TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    )''')
-    
-    # Expenses table
-    c.execute('''CREATE TABLE IF NOT EXISTS expenses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        description TEXT NOT NULL,
-        total_amount REAL NOT NULL,
-        installments INTEGER NOT NULL DEFAULT 1,
-        installment_value REAL NOT NULL,
-        category TEXT,
-        due_date TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    )''')
-    
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        # Users table
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Incomes table
+        c.execute('''CREATE TABLE IF NOT EXISTS incomes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            amount REAL NOT NULL,
+            month TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )''')
+        
+        # Expenses table
+        c.execute('''CREATE TABLE IF NOT EXISTS expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            total_amount REAL NOT NULL,
+            installments INTEGER NOT NULL DEFAULT 1,
+            installment_value REAL NOT NULL,
+            category TEXT,
+            due_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )''')
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao inicializar banco: {e}")
 
 # Login required decorator
 def login_required(f):
@@ -77,7 +83,7 @@ def login():
         email = request.form['email']
         password = hash_password(request.form['password'])
         
-        conn = sqlite3.connect('financeiro.db')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('SELECT id, name FROM users WHERE email = ? AND password = ?', (email, password))
         user = c.fetchone()
@@ -100,7 +106,7 @@ def register():
         password = hash_password(request.form['password'])
         
         try:
-            conn = sqlite3.connect('financeiro.db')
+            conn = sqlite3.connect(DB_PATH)
             c = conn.cursor()
             c.execute('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', (name, email, password))
             conn.commit()
@@ -128,7 +134,7 @@ def logout():
 def dashboard():
     user_id = session['user_id']
     
-    conn = sqlite3.connect('financeiro.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Get incomes
@@ -167,7 +173,7 @@ def add_income():
     amount = float(request.form['amount'])
     month = request.form['month']
     
-    conn = sqlite3.connect('financeiro.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('INSERT INTO incomes (user_id, description, amount, month) VALUES (?, ?, ?, ?)',
               (user_id, description, amount, month))
@@ -188,7 +194,7 @@ def add_expense():
     category = request.form.get('category', '')
     due_date = request.form['due_date']
     
-    conn = sqlite3.connect('financeiro.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO expenses 
                  (user_id, description, total_amount, installments, installment_value, category, due_date, status) 
@@ -205,7 +211,7 @@ def add_expense():
 def delete_expense(expense_id):
     user_id = session['user_id']
     
-    conn = sqlite3.connect('financeiro.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('DELETE FROM expenses WHERE id = ? AND user_id = ?', (expense_id, user_id))
     conn.commit()
@@ -219,7 +225,7 @@ def delete_expense(expense_id):
 def toggle_status(expense_id):
     user_id = session['user_id']
     
-    conn = sqlite3.connect('financeiro.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT status FROM expenses WHERE id = ? AND user_id = ?', (expense_id, user_id))
     expense = c.fetchone()
