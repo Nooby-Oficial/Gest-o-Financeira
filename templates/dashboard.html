@@ -202,7 +202,7 @@
                 <span class="close-modal" onclick="closeModal('expenseModal')">&times;</span>
             </div>
             
-            <form method="POST" action="{{ url_for('add_expense') }}">
+            <form method="POST" action="{{ url_for('add_expense') }}" onsubmit="return validateExpenseForm()">
                 <div class="form-group">
                     <label for="expense_description">Descrição *</label>
                     <input type="text" id="expense_description" name="description" required placeholder="Ex: Conta de luz">
@@ -221,7 +221,8 @@
                 <div class="form-group" id="value_type_group" style="display: none;">
                     <label for="value_type">Tipo de Valor *</label>
                     <select id="value_type" name="value_type" onchange="calculateInstallment()">
-                        <option value="total" selected>Valor Total (será dividido)</option>
+                        <option value="">Selecione...</option>
+                        <option value="total">Valor Total (será dividido)</option>
                         <option value="individual">Valor Individual (será multiplicado)</option>
                     </select>
                 </div>
@@ -400,6 +401,10 @@
         if (installments > 1) {
             valueTypeGroup.style.display = 'block';
             valueTypeSelect.required = true;
+            // Limpa a seleção para forçar usuário escolher
+            if (valueTypeSelect.value === 'total' || valueTypeSelect.value === '') {
+                valueTypeSelect.value = '';
+            }
         } else {
             valueTypeGroup.style.display = 'none';
             valueTypeSelect.required = false;
@@ -407,6 +412,25 @@
         }
         
         calculateInstallment();
+    }
+    
+    function validateExpenseForm() {
+        const installments = parseInt(document.getElementById('installments').value) || 1;
+        const valueType = document.getElementById('value_type').value;
+        
+        // Se tiver 1 parcela, garante que value_type seja 'total'
+        if (installments === 1) {
+            document.getElementById('value_type').value = 'total';
+            return true;
+        }
+        
+        // Se tiver mais de 1 parcela, exige que o usuário escolha o tipo
+        if (!valueType) {
+            alert('Por favor, selecione o Tipo de Valor');
+            return false;
+        }
+        
+        return true;
     }
     
     function calculateInstallment() {
