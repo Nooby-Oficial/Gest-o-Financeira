@@ -132,10 +132,13 @@ def register():
             
             session['user_id'] = user_id
             session['user_name'] = name
+            flash('Conta criada com sucesso!', 'success')
             return redirect(url_for('dashboard'))
-        except psycopg2.IntegrityError:
+        except psycopg2.IntegrityError as e:
+            print(f"IntegrityError: {e}")
             flash('Email já cadastrado', 'error')
         except Exception as e:
+            print(f"Erro ao registrar: {e}")
             flash(f'Erro ao criar conta: {str(e)}', 'error')
     
     return render_template('register.html')
@@ -148,38 +151,43 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    user_id = session['user_id']
-    
-    conn = get_db_connection()
-    c = conn.cursor()
-    
-    # Get incomes
-    c.execute('SELECT * FROM incomes WHERE user_id = %s ORDER BY month DESC', (user_id,))
-    incomes = c.fetchall()
-    
-    # Get expenses
-    c.execute('SELECT * FROM expenses WHERE user_id = %s ORDER BY due_date DESC', (user_id,))
-    expenses = c.fetchall()
-    
-    conn.close()
-    
-    # Calculate summary
-    total_income = sum(float(income['amount']) for income in incomes)
-    total_expenses = sum(float(expense['installment_value']) for expense in expenses)
-    balance = total_income - total_expenses
-    percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
-    
-    summary = {
-        'total_income': total_income,
-        'total_expenses': total_expenses,
-        'balance': balance,
-        'percentage_used': round(percentage_used, 1)
-    }
-    
-    return render_template('dashboard.html', 
-                         incomes=incomes, 
-                         expenses=expenses, 
-                         summary=summary)
+    try:
+        user_id = session['user_id']
+        
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Get incomes
+        c.execute('SELECT * FROM incomes WHERE user_id = %s ORDER BY month DESC', (user_id,))
+        incomes = c.fetchall()
+        
+        # Get expenses
+        c.execute('SELECT * FROM expenses WHERE user_id = %s ORDER BY due_date DESC', (user_id,))
+        expenses = c.fetchall()
+        
+        conn.close()
+        
+        # Calculate summary
+        total_income = sum(float(income['amount']) for income in incomes)
+        total_expenses = sum(float(expense['installment_value']) for expense in expenses)
+        balance = total_income - total_expenses
+        percentage_used = (total_expenses / total_income * 100) if total_income > 0 else 0
+        
+        summary = {
+            'total_income': total_income,
+            'total_expenses': total_expenses,
+            'balance': balance,
+            'percentage_used': round(percentage_used, 1)
+        }
+        
+        return render_template('dashboard.html', 
+                             incomes=incomes, 
+                             expenses=expenses, 
+                             summary=summary)
+    except Exception as e:
+        print(f"Erro no dashboard: {e}")
+        flash(f'Erro ao carregar dashboard: {str(e)}', 'error')
+        return redirect(url_for('login'))
 
 @app.route('/add_income', methods=['POST'])
 @login_required
