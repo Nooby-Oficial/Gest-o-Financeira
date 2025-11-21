@@ -267,24 +267,10 @@ def dashboard():
         total_expenses_global = sum(float(expense['total_amount']) for expense in all_expenses)
         
         # Calculate monthly expenses (sum of Valor/Mês column) - usa despesas do mês
-        total_monthly_expenses = 0
-        for expense in expenses:
-            if expense.get('value_type') == 'individual':
-                # Se for individual, valor mensal é o total_amount
-                total_monthly_expenses += float(expense['total_amount'])
-            else:
-                # Se for total ou None, valor mensal é o installment_value
-                total_monthly_expenses += float(expense['installment_value'])
+        total_monthly_expenses = sum(float(expense['installment_value']) for expense in expenses)
         
-        # Calculate weekly expenses - usa despesas do mês
-        total_weekly_expenses = 0
-        for expense in expenses:
-            if expense.get('value_type') == 'individual':
-                # Se for individual, valor semanal é o installment_value
-                total_weekly_expenses += float(expense['installment_value'])
-            else:
-                # Se for total ou None, valor semanal é installment_value / 4
-                total_weekly_expenses += float(expense['installment_value']) / 4
+        # Calculate weekly expenses (sum of Valor/Semana column) - usa despesas do mês
+        total_weekly_expenses = sum(float(expense['installment_value']) / expense['installments'] for expense in expenses)
         
         # Calculate paid expenses percentage - usa TODAS as despesas (global)
         total_paid_expenses = sum(float(expense['total_amount']) for expense in all_expenses if expense['status'] == 'paid')
@@ -406,7 +392,7 @@ def add_expense():
                  (user_id, description, total_amount, installments, installment_value, category, 
                   value_type, due_date, status, month, year, current_installment) 
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id''',
-              (user_id, description, installment_value, installments, installment_value, category, 
+              (user_id, description, total_amount, installments, installment_value, category, 
                value_type, due_date_str, 'pending', expense_month, expense_year, 1))
     
     parent_id = c.fetchone()['id']
@@ -434,7 +420,7 @@ def add_expense():
                          (user_id, description, total_amount, installments, installment_value, category, 
                           value_type, due_date, status, month, year, current_installment, parent_expense_id) 
                          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                      (user_id, description, installment_value, installments, installment_value, category, 
+                      (user_id, description, total_amount, installments, installment_value, category, 
                        value_type, next_due_date_str, 'pending', next_month_str, next_year, i, parent_id))
     
     conn.commit()
