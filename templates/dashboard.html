@@ -133,7 +133,11 @@
                         {% endif %}
                     </td>
                     <td>
-                        R$ {{ "%.2f"|format(expense.installment_value / expense.installments) }}
+                        {% if expense.get('value_type') == 'total' %}
+                            R$ {{ "%.2f"|format(expense.installment_value / 4) }}
+                        {% else %}
+                            R$ {{ "%.2f"|format(expense.total_amount / 4) }}
+                        {% endif %}
                     </td>
                     <td>{{ expense.due_date }}</td>
                     <td>
