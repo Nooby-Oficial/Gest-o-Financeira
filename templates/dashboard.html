@@ -131,6 +131,10 @@
                         </a>
                     </td>
                     <td>
+                        <button onclick="openEditModal({{ expense.id }}, '{{ expense.description }}', {{ expense.total_amount }}, {{ expense.installments }}, '{{ expense.get('value_type', 'total') }}', '{{ expense.due_date }}', '{{ expense.category }}')" 
+                                class="btn btn-small" style="margin-right: 5px;">
+                            Editar
+                        </button>
                         <a href="{{ url_for('delete_expense', expense_id=expense.id) }}" 
                            class="btn btn-small btn-danger"
                            onclick="return confirm('Tem certeza que deseja excluir?')">
@@ -242,9 +246,144 @@
             </form>
         </div>
     </div>
+
+    <!-- Edit Expense Modal -->
+    <div id="editExpenseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Despesa</h2>
+                <span class="close-modal" onclick="closeModal('editExpenseModal')">&times;</span>
+            </div>
+            
+            <form id="editExpenseForm" method="POST" action="">
+                <div class="form-group">
+                    <label for="edit_expense_description">Descrição *</label>
+                    <input type="text" id="edit_expense_description" name="description" required placeholder="Ex: Conta de luz">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_total_amount">Valor *</label>
+                    <input type="number" id="edit_total_amount" name="total_amount" step="0.01" required placeholder="0.00" oninput="calculateEditInstallment()">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_installments">Parcelas *</label>
+                    <input type="number" id="edit_installments" name="installments" min="1" required value="1" oninput="toggleEditValueTypeField()">
+                </div>
+
+                <div class="form-group" id="edit_value_type_group" style="display: none;">
+                    <label for="edit_value_type">Tipo de Valor *</label>
+                    <select id="edit_value_type" name="value_type" required onchange="calculateEditInstallment()">
+                        <option value="">Selecione...</option>
+                        <option value="total">Valor Total (será dividido)</option>
+                        <option value="individual">Valor Individual (será multiplicado)</option>
+                    </select>
+                </div>
+
+                <div id="edit_installment_info" style="background: #e0e7ff; padding: 15px; border-radius: 5px; margin-bottom: 15px; display: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #4338ca;"><strong>Valor Total:</strong></span>
+                        <span id="edit_total_value_display" style="color: #4338ca; font-weight: bold;">R$ 0,00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #4338ca;"><strong>Valor por Parcela:</strong></span>
+                        <span id="edit_installment_value" style="color: #4338ca; font-weight: bold;">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_due_date">Data de Vencimento *</label>
+                    <input type="date" id="edit_due_date" name="due_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_category">Categoria (opcional)</label>
+                    <input type="text" id="edit_category" name="category" placeholder="Ex: Moradia, Alimentação">
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-danger" style="flex: 1;" onclick="closeModal('editExpenseModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
+    function openEditModal(id, description, totalAmount, installments, valueType, dueDate, category) {
+        document.getElementById('editExpenseForm').action = '/edit_expense/' + id;
+        document.getElementById('edit_expense_description').value = description;
+        document.getElementById('edit_installments').value = installments;
+        document.getElementById('edit_value_type').value = valueType;
+        document.getElementById('edit_due_date').value = dueDate;
+        document.getElementById('edit_category').value = category || '';
+        
+        // Calculate the input value based on value_type
+        if (installments > 1 && valueType === 'individual') {
+            document.getElementById('edit_total_amount').value = (totalAmount / installments).toFixed(2);
+        } else {
+            document.getElementById('edit_total_amount').value = totalAmount.toFixed(2);
+        }
+        
+        toggleEditValueTypeField();
+        calculateEditInstallment();
+        openModal('editExpenseModal');
+    }
+    
+    function toggleEditValueTypeField() {
+        const installments = parseInt(document.getElementById('edit_installments').value) || 1;
+        const valueTypeGroup = document.getElementById('edit_value_type_group');
+        const valueTypeSelect = document.getElementById('edit_value_type');
+        
+        if (installments > 1) {
+            valueTypeGroup.style.display = 'block';
+            valueTypeSelect.required = true;
+        } else {
+            valueTypeGroup.style.display = 'none';
+            valueTypeSelect.required = false;
+            valueTypeSelect.value = 'total';
+        }
+        
+        calculateEditInstallment();
+    }
+    
+    function calculateEditInstallment() {
+        const amountInput = parseFloat(document.getElementById('edit_total_amount').value) || 0;
+        const installments = parseInt(document.getElementById('edit_installments').value) || 1;
+        const valueType = document.getElementById('edit_value_type').value;
+        const installmentInfo = document.getElementById('edit_installment_info');
+        
+        if (amountInput > 0 && (installments === 1 || valueType)) {
+            let totalValue, installmentValue;
+            
+            if (installments > 1 && valueType) {
+                if (valueType === 'total') {
+                    totalValue = amountInput;
+                    installmentValue = amountInput / installments;
+                } else if (valueType === 'individual') {
+                    installmentValue = amountInput;
+                    totalValue = amountInput * installments;
+                }
+            } else {
+                totalValue = amountInput;
+                installmentValue = amountInput;
+            }
+            
+            if (totalValue !== undefined) {
+                installmentInfo.style.display = 'block';
+                document.getElementById('edit_total_value_display').textContent = 
+                    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue);
+                document.getElementById('edit_installment_value').textContent = 
+                    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue);
+            } else {
+                installmentInfo.style.display = 'none';
+            }
+        } else {
+            installmentInfo.style.display = 'none';
+        }
+    }
+
     function toggleValueTypeField() {
         const installments = parseInt(document.getElementById('installments').value) || 1;
         const valueTypeGroup = document.getElementById('value_type_group');

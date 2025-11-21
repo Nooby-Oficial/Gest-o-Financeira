@@ -288,6 +288,43 @@ def add_expense():
     flash('Despesa adicionada com sucesso', 'success')
     return redirect(url_for('dashboard'))
 
+@app.route('/edit_expense/<int:expense_id>', methods=['POST'])
+@login_required
+def edit_expense(expense_id):
+    user_id = session['user_id']
+    
+    description = request.form['description']
+    total_amount = float(request.form['total_amount'])
+    installments = int(request.form['installments'])
+    value_type = request.form.get('value_type', 'total')
+    due_date = request.form['due_date']
+    category = request.form.get('category', '')
+    
+    # Calculate installment value
+    if installments > 1:
+        if value_type == 'individual':
+            installment_value = total_amount
+            total_amount = total_amount * installments
+        else:  # total
+            installment_value = total_amount / installments
+    else:
+        installment_value = total_amount
+        value_type = 'total'
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('''UPDATE expenses 
+                 SET description = %s, total_amount = %s, installments = %s, 
+                     installment_value = %s, value_type = %s, due_date = %s, category = %s
+                 WHERE id = %s AND user_id = %s''',
+              (description, total_amount, installments, installment_value, 
+               value_type, due_date, category, expense_id, user_id))
+    conn.commit()
+    conn.close()
+    
+    flash('Despesa atualizada com sucesso', 'success')
+    return redirect(url_for('dashboard'))
+
 @app.route('/delete_expense/<int:expense_id>')
 @login_required
 def delete_expense(expense_id):
