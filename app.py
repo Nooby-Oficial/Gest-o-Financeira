@@ -54,7 +54,6 @@ def init_db():
             total_amount REAL NOT NULL,
             installments INTEGER NOT NULL DEFAULT 1,
             installment_value REAL NOT NULL,
-            value_type TEXT DEFAULT 'total',
             category TEXT,
             due_date TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending',
@@ -238,9 +237,9 @@ def add_expense():
     conn = get_db_connection()
     c = conn.cursor()
     c.execute('''INSERT INTO expenses 
-                 (user_id, description, total_amount, installments, installment_value, value_type, category, due_date, status) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-              (user_id, description, total_amount, installments, installment_value, value_type, category, due_date, 'pending'))
+                 (user_id, description, total_amount, installments, installment_value, category, due_date, status) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
+              (user_id, description, total_amount, installments, installment_value, category, due_date, 'pending'))
     conn.commit()
     conn.close()
     
