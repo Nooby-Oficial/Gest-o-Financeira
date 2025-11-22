@@ -199,7 +199,7 @@
 
                 <div class="form-group">
                     <label for="income_amount">Valor *</label>
-                    <input type="number" id="income_amount" name="amount" step="0.01" required placeholder="0.00">
+                    <input type="text" id="income_amount" name="amount" required placeholder="R$ 0,00" oninput="formatCurrencyInput(this)">
                 </div>
 
                 <div class="form-group">
@@ -232,7 +232,7 @@
 
                 <div class="form-group">
                     <label for="total_amount">Valor *</label>
-                    <input type="number" id="total_amount" name="total_amount" step="0.01" required placeholder="0.00" oninput="calculateInstallment()">
+                    <input type="text" id="total_amount" name="total_amount" required placeholder="R$ 0,00" oninput="formatCurrencyInput(this); calculateInstallment()">
                 </div>
 
                 <div class="form-group">
@@ -301,7 +301,7 @@
 
                 <div class="form-group">
                     <label for="edit_total_amount">Valor *</label>
-                    <input type="number" id="edit_total_amount" name="total_amount" step="0.01" required placeholder="0.00" oninput="calculateEditInstallment()">
+                    <input type="text" id="edit_total_amount" name="total_amount" required placeholder="R$ 0,00" oninput="formatCurrencyInput(this); calculateEditInstallment()">
                 </div>
 
                 <div class="form-group">
@@ -365,12 +365,19 @@
         document.getElementById('edit_category').value = category || '';
         document.getElementById('edit_expense_month').value = expenseMonth || '';
         
-        // Calculate the input value based on value_type
+        // Calculate the input value based on value_type and format as currency
+        let valueToDisplay;
         if (installments > 1 && valueType === 'individual') {
-            document.getElementById('edit_total_amount').value = (totalAmount / installments).toFixed(2);
+            valueToDisplay = totalAmount / installments;
         } else {
-            document.getElementById('edit_total_amount').value = totalAmount.toFixed(2);
+            valueToDisplay = totalAmount;
         }
+        
+        // Formata o valor como moeda brasileira
+        document.getElementById('edit_total_amount').value = valueToDisplay.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
         
         toggleEditValueTypeField();
         calculateEditInstallment();
@@ -395,7 +402,7 @@
     }
     
     function calculateEditInstallment() {
-        const amountInput = parseFloat(document.getElementById('edit_total_amount').value) || 0;
+        const amountInput = parseCurrencyValue(document.getElementById('edit_total_amount').value);
         const installments = parseInt(document.getElementById('edit_installments').value) || 1;
         const valueType = document.getElementById('edit_value_type').value;
         const installmentInfo = document.getElementById('edit_installment_info');
@@ -477,7 +484,7 @@
     }
     
     function calculateInstallment() {
-        const amountInput = parseFloat(document.getElementById('total_amount').value) || 0;
+        const amountInput = parseCurrencyValue(document.getElementById('total_amount').value);
         const installments = parseInt(document.getElementById('installments').value) || 1;
         const valueType = document.getElementById('value_type').value;
         const installmentInfo = document.getElementById('installment_info');
@@ -526,7 +533,12 @@
             
             if (data.description) {
                 document.getElementById('income_description').value = data.description;
-                document.getElementById('income_amount').value = data.amount;
+                // Formata o valor como moeda brasileira
+                const amountValue = parseFloat(data.amount);
+                document.getElementById('income_amount').value = amountValue.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                });
             } else {
                 document.getElementById('income_description').value = '';
                 document.getElementById('income_amount').value = '';
@@ -547,6 +559,80 @@
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
     }
+
+    // Função para formatar valor em Real brasileiro enquanto digita
+    function formatCurrencyInput(input) {
+        let value = input.value;
+        
+        // Remove tudo que não é número
+        value = value.replace(/\D/g, '');
+        
+        // Converte para número e divide por 100 para ter os centavos
+        value = (parseInt(value) || 0) / 100;
+        
+        // Formata como moeda brasileira
+        input.value = value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    }
+
+    // Função para extrair valor numérico de string formatada
+    function parseCurrencyValue(formattedValue) {
+        if (!formattedValue) return 0;
+        // Remove R$, pontos e substitui vírgula por ponto
+        return parseFloat(formattedValue.replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
+    }
+
+    // Intercepta submit dos formulários para converter valores formatados
+    document.addEventListener('DOMContentLoaded', function() {
+        // Formulário de receita
+        const incomeForm = document.querySelector('#incomeModal form');
+        if (incomeForm) {
+            incomeForm.addEventListener('submit', function(e) {
+                const amountInput = document.getElementById('income_amount');
+                const numericValue = parseCurrencyValue(amountInput.value);
+                // Cria campo hidden com valor numérico
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'amount';
+                hiddenInput.value = numericValue;
+                this.appendChild(hiddenInput);
+                // Remove o name do campo formatado para não enviar
+                amountInput.removeAttribute('name');
+            });
+        }
+
+        // Formulário de nova despesa
+        const expenseForm = document.querySelector('#expenseModal form');
+        if (expenseForm) {
+            expenseForm.addEventListener('submit', function(e) {
+                const amountInput = document.getElementById('total_amount');
+                const numericValue = parseCurrencyValue(amountInput.value);
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'total_amount';
+                hiddenInput.value = numericValue;
+                this.appendChild(hiddenInput);
+                amountInput.removeAttribute('name');
+            });
+        }
+
+        // Formulário de edição de despesa
+        const editExpenseForm = document.getElementById('editExpenseForm');
+        if (editExpenseForm) {
+            editExpenseForm.addEventListener('submit', function(e) {
+                const amountInput = document.getElementById('edit_total_amount');
+                const numericValue = parseCurrencyValue(amountInput.value);
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'total_amount';
+                hiddenInput.value = numericValue;
+                this.appendChild(hiddenInput);
+                amountInput.removeAttribute('name');
+            });
+        }
+    });
 </script>
 {% endblock %}
 
