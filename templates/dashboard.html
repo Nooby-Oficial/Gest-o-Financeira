@@ -37,30 +37,30 @@
     <div class="summary-grid">
         <div class="summary-card">
             <h3>Receita Mensal</h3>
-            <div class="value value-positive">R$ {{ "%.2f"|format(summary.total_income) }}</div>
+            <div class="value value-positive">{{ summary.total_income|brl }}</div>
         </div>
 
         <div class="summary-card">
             <h3>Despesa Mensal</h3>
             <div class="value {% if summary.total_monthly_expenses <= summary.total_income %}value-warning{% else %}value-negative{% endif %}">
-                R$ {{ "%.2f"|format(summary.total_monthly_expenses) }}
+                {{ summary.total_monthly_expenses|brl }}
             </div>
         </div>
 
         <div class="summary-card">
             <h3>Total de Despesas</h3>
-            <div class="value {% if summary.total_expenses <= summary.total_income %}value-positive{% else %}value-yellow{% endif %}">R$ {{ "%.2f"|format(summary.total_expenses) }}</div>
+            <div class="value {% if summary.total_expenses <= summary.total_income %}value-positive{% else %}value-yellow{% endif %}">{{ summary.total_expenses|brl }}</div>
         </div>
 
         <div class="summary-card">
             <h3>Despesa Semanal</h3>
-            <div class="value {% if summary.total_weekly_expenses > (summary.total_income * 0.25) %}value-warning{% else %}value-primary{% endif %}">R$ {{ "%.2f"|format(summary.total_weekly_expenses) }}</div>
+            <div class="value {% if summary.total_weekly_expenses > (summary.total_income * 0.25) %}value-warning{% else %}value-primary{% endif %}">{{ summary.total_weekly_expenses|brl }}</div>
         </div>
 
         <div class="summary-card">
             <h3>Saldo Mensal</h3>
             <div class="value {% if summary.balance >= 0 %}value-positive{% else %}value-negative{% endif %}">
-                R$ {{ "%.2f"|format(summary.balance) }}
+                {{ summary.balance|brl }}
             </div>
         </div>
 
@@ -123,20 +123,20 @@
                             Sem Parcelas
                         {% endif %}
                     </td>
-                    <td><strong>R$ {{ "%.2f"|format(expense.total_amount) }}</strong></td>
+                    <td><strong>{{ expense.total_amount|brl }}</strong></td>
                     <td>{{ expense.installments }}x</td>
                     <td>
                         {% if expense.get('value_type') == 'total' %}
-                            R$ {{ "%.2f"|format(expense.installment_value) }}
+                            {{ expense.installment_value|brl }}
                         {% else %}
-                            R$ {{ "%.2f"|format(expense.total_amount) }}
+                            {{ expense.total_amount|brl }}
                         {% endif %}
                     </td>
                     <td>
                         {% if expense.get('value_type') == 'total' %}
-                            R$ {{ "%.2f"|format(expense.installment_value / 4) }}
+                            {{ (expense.installment_value / 4)|brl }}
                         {% else %}
-                            R$ {{ "%.2f"|format(expense.total_amount / 4) }}
+                            {{ (expense.total_amount / 4)|brl }}
                         {% endif %}
                     </td>
                     <td>{{ expense.due_date }}</td>

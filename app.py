@@ -9,6 +9,16 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+# Filtro customizado para formatar moeda brasileira
+@app.template_filter('brl')
+def format_currency_brl(value):
+    """Formata valor numérico como moeda brasileira"""
+    try:
+        value = float(value)
+        return f"R$ {value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    except (ValueError, TypeError):
+        return "R$ 0,00"
+
 # Database connection
 def get_db_connection():
     try:
